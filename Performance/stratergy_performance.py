@@ -27,7 +27,7 @@ def stratergy_performance(data, stratergy, start_date=None, end_date=None, initi
 
     # Filter data based on the selected date range
     data = data[(data.index >= start_date) & (data.index <= end_date)]
-
+    
     # Apply the selected strategy
     if stratergy == 'sma':
         data = sma_stratergy(data)
@@ -48,7 +48,9 @@ def stratergy_performance(data, stratergy, start_date=None, end_date=None, initi
     elif stratergy == 'garman_klass':
         data = garman_klass_stratergy(data)
     """
-
+    print("Oh")
+    print(data.head(30))
+    print("Oh")
     fig = interactive_candle_chart(data, show_fig=True)
     
     # Calculate points captured by the strategy

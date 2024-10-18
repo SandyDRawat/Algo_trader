@@ -10,32 +10,30 @@ def interactive_candle_chart(data, show_fig=True):
     Parameters:
     - data: DataFrame containing 'Open', 'High', 'Low', 'Close', 'Date', and optional indicator columns.
     """
+    # Check if 'Buy/Sell' column is present
+    buy_sell_exists = 'Buy/Sell' in data.columns
 
     # Ensure 'Date' column is in datetime format and set as index
     if not isinstance(data.index, pd.DatetimeIndex):
         data['Date'] = pd.to_datetime(data['Date'])
         data.set_index('Date', inplace=True)
 
-    # Default timeframe is the current data
-    current_data = data.copy()
-
     # Collect indicator columns from the data
-    indicator_columns = [col for col in data.columns if col not in ['Open', 'High', 'Low', 'Close', 'Volume','Buy/Sell']]
+    indicator_columns = [col for col in data.columns if col not in ['Open', 'High', 'Low', 'Close', 'Volume', 'Buy/Sell']]
 
     # Create the initial candlestick chart
-    fig = go.Figure(data=[go.Candlestick(x=current_data.index,
-                                         open=current_data['Open'],
-                                         high=current_data['High'],
-                                         low=current_data['Low'],
-                                         close=current_data['Close'],
+    fig = go.Figure(data=[go.Candlestick(x=data.index,
+                                         open=data['Open'],
+                                         high=data['High'],
+                                         low=data['Low'],
+                                         close=data['Close'],
                                          name="Candlestick")])
 
-    # Add buy and sell markers from the 'Buy/Sell' column
-    if 'Buy/Sell' in current_data.columns:
-        buy_signals = current_data[current_data['Buy/Sell'] == 1]
-        sell_signals = current_data[current_data['Buy/Sell'] == -1]
+    # Add buy and sell markers from the 'Buy/Sell' column if it exists
+    if buy_sell_exists:
+        buy_signals = data[data['Buy/Sell'] == 1]
+        sell_signals = data[data['Buy/Sell'] == -1]
 
-        # Add buy (green triangle up) and sell (red triangle down) markers
         fig.add_trace(go.Scatter(x=buy_signals.index, y=buy_signals['Close'], mode='markers',
                                  marker=dict(symbol="triangle-up", color="green", size=10),
                                  name="Buy Signal"))
@@ -46,26 +44,92 @@ def interactive_candle_chart(data, show_fig=True):
 
     # Add indicators as line charts; plot RSI on a secondary y-axis if it exists
     for indicator in indicator_columns:
-        if indicator in current_data.columns:
-            if indicator == 'RSI':
-                fig.add_trace(go.Scatter(x=current_data.index, y=current_data[indicator], mode='lines', name=indicator,
-                                         yaxis='y2'))
-            else:
-                fig.add_trace(go.Scatter(x=current_data.index, y=current_data[indicator], mode='lines', name=indicator))
+        if indicator == 'RSI':
+            fig.add_trace(go.Scatter(x=data.index, y=data[indicator], mode='lines', name=indicator,
+                                     yaxis='y2'))
+        else:
+            fig.add_trace(go.Scatter(x=data.index, y=data[indicator], mode='lines', name=indicator))
 
-    # Function to update the chart with a new timeframe
+    # Function to update the chart with buy/sell markers (if 'Buy/Sell' exists)
+    def update_chart_wpts(timeframe):
+        # Convert data to selected timeframe using the updated convert_timeframe function
+        new_data = convert_timeframe(data, timeframe)
+
+        # Update candlestick traces
+        traces = {
+            'open': new_data['Open'],
+            'high': new_data['High'],
+            'low': new_data['Low'],
+            'close': new_data['Close'],
+            'x': new_data.index
+        }
+
+        # Check if 'Buy/Sell' column exists in the new data
+        if 'Buy/Sell' in new_data.columns:
+            # Extract buy and sell signals from 'Buy/Sell' column in new_data
+            buy_signals = new_data[new_data['Buy/Sell'] == 1]
+            sell_signals = new_data[new_data['Buy/Sell'] == -1]
+
+            # Create traces for buy/sell markers
+            buy_trace = go.Scatter(
+                x=buy_signals.index,
+                y=buy_signals['Close'],
+                marker=dict(symbol="triangle-up", color="green", size=10),
+                mode='markers',
+                name='Buy Signal'
+            )
+
+            sell_trace = go.Scatter(
+                x=sell_signals.index,
+                y=sell_signals['Close'],
+                marker=dict(symbol="triangle-down", color="red", size=10),
+                mode='markers',
+                name='Sell Signal'
+            )
+        else:
+            # If 'Buy/Sell' column does not exist, return empty traces
+            buy_trace = sell_trace = None
+
+        # Reapply indicators based on the resampled data
+        indicators = []
+        for col in new_data.columns:
+            if col not in ['Open', 'High', 'Low', 'Close', 'Volume', 'Buy/Sell']:
+                indicators.append(go.Scatter(
+                    x=new_data.index,
+                    y=new_data[col],
+                    mode='lines',
+                    name=col,
+                    yaxis='y2' if col == 'RSI' else 'y'
+                ))
+
+        return traces, indicators, buy_trace, sell_trace
+
+    # Function to update the chart without buy/sell markers
     def update_chart(timeframe):
         # Convert data to selected timeframe using provided function
         new_data = convert_timeframe(data, timeframe)
+
+        # Update candlestick traces
         traces = {
-            'open': new_data['Open'], 
-            'high': new_data['High'], 
-            'low': new_data['Low'], 
-            'close': new_data['Close'], 
+            'open': new_data['Open'],
+            'high': new_data['High'],
+            'low': new_data['Low'],
+            'close': new_data['Close'],
             'x': new_data.index
         }
-        # Collect all indicators, only if they exist in the new_data
-        indicators = {col: new_data[col] for col in indicator_columns if col in new_data.columns}
+
+        # Collect indicator values
+        indicators = []
+        for col in indicator_columns:
+            if col in new_data.columns:
+                indicators.append(go.Scatter(
+                    x=new_data.index,
+                    y=new_data[col],
+                    mode='lines',
+                    name=col,
+                    yaxis='y2' if col == 'RSI' else 'y'
+                ))
+
         return traces, indicators
 
     # Customize layout to include crosshair, gridlines, and drawing tools
@@ -79,10 +143,10 @@ def interactive_candle_chart(data, show_fig=True):
         xaxis=dict(showgrid=True, gridcolor='LightGrey', gridwidth=1),  # X-axis gridlines
         yaxis=dict(showgrid=True, gridcolor='LightGrey', gridwidth=1),  # Y-axis gridlines
         yaxis2=dict(
-            title='RSI', 
-            overlaying='y', 
-            side='right', 
-            showgrid=False, 
+            title='RSI',
+            overlaying='y',
+            side='right',
+            showgrid=False,
             range=[0, 100]  # RSI usually ranges from 0 to 100
         )
     )
@@ -115,65 +179,39 @@ def interactive_candle_chart(data, show_fig=True):
                     dict(
                         label="1 Min",
                         method="update",
-                        args=[{'x': [update_chart("1min")[0]['x']],
-                               'open': [update_chart("1min")[0]['open']],
-                               'high': [update_chart("1min")[0]['high']],
-                               'low': [update_chart("1min")[0]['low']],
-                               'close': [update_chart("1min")[0]['close']]},
-                              [{'x': update_chart("1min")[0]['x'], 'y': update_chart("1min")[1].get(col, []), 'yaxis': 'y2' if col == 'RSI' else 'y'} for col in indicator_columns]],
+                        args=[
+                            {'x': [update_chart_wpts("1min")[0]['x']] if buy_sell_exists else [update_chart("1min")[0]['x']],
+                             'open': [update_chart_wpts("1min")[0]['open']] if buy_sell_exists else [update_chart("1min")[0]['open']],
+                             'high': [update_chart_wpts("1min")[0]['high']] if buy_sell_exists else [update_chart("1min")[0]['high']],
+                             'low': [update_chart_wpts("1min")[0]['low']] if buy_sell_exists else [update_chart("1min")[0]['low']],
+                             'close': [update_chart_wpts("1min")[0]['close']] if buy_sell_exists else [update_chart("1min")[0]['close']]},
+                            update_chart_wpts("1min")[1] if buy_sell_exists else update_chart("1min")[1]
+                        ]
                     ),
                     dict(
                         label="5 Min",
                         method="update",
-                        args=[{'x': [update_chart("5min")[0]['x']],
-                               'open': [update_chart("5min")[0]['open']],
-                               'high': [update_chart("5min")[0]['high']],
-                               'low': [update_chart("5min")[0]['low']],
-                               'close': [update_chart("5min")[0]['close']]},
-                              [{'x': update_chart("5min")[0]['x'], 'y': update_chart("5min")[1].get(col, []), 'yaxis': 'y2' if col == 'RSI' else 'y'} for col in indicator_columns]],
+                        args=[
+                            {'x': [update_chart_wpts("5min")[0]['x']] if buy_sell_exists else [update_chart("5min")[0]['x']],
+                             'open': [update_chart_wpts("5min")[0]['open']] if buy_sell_exists else [update_chart("5min")[0]['open']],
+                             'high': [update_chart_wpts("5min")[0]['high']] if buy_sell_exists else [update_chart("5min")[0]['high']],
+                             'low': [update_chart_wpts("5min")[0]['low']] if buy_sell_exists else [update_chart("5min")[0]['low']],
+                             'close': [update_chart_wpts("5min")[0]['close']] if buy_sell_exists else [update_chart("5min")[0]['close']]},
+                            update_chart_wpts("5min")[1] if buy_sell_exists else update_chart("5min")[1]
+                        ]
                     ),
-                    dict(
-                        label="10 Min",
-                        method="update",
-                        args=[{'x': [update_chart("10min")[0]['x']],
-                               'open': [update_chart("10min")[0]['open']],
-                               'high': [update_chart("10min")[0]['high']],
-                               'low': [update_chart("10min")[0]['low']],
-                               'close': [update_chart("10min")[0]['close']]},
-                              [{'x': update_chart("10min")[0]['x'], 'y': update_chart("10min")[1].get(col, []), 'yaxis': 'y2' if col == 'RSI' else 'y'} for col in indicator_columns]],
-                    ),
-                    dict(
-                        label="15 Min",
-                        method="update",
-                        args=[{'x': [update_chart("15min")[0]['x']],
-                               'open': [update_chart("15min")[0]['open']],
-                               'high': [update_chart("15min")[0]['high']],
-                               'low': [update_chart("15min")[0]['low']],
-                               'close': [update_chart("15min")[0]['close']]},
-                              [{'x': update_chart("15min")[0]['x'], 'y': update_chart("15min")[1].get(col, []), 'yaxis': 'y2' if col == 'RSI' else 'y'} for col in indicator_columns]],
-                    ),
-                    dict(
-                        label="1 Hour",
-                        method="update",
-                        args=[{'x': [update_chart("1h")[0]['x']],
-                               'open': [update_chart("1h")[0]['open']],
-                               'high': [update_chart("1h")[0]['high']],
-                               'low': [update_chart("1h")[0]['low']],
-                               'close': [update_chart("1h")[0]['close']]},
-                              [{'x': update_chart("1h")[0]['x'], 'y': update_chart("1h")[1].get(col, []), 'yaxis': 'y2' if col == 'RSI' else 'y'} for col in indicator_columns]],
-                    )
                 ],
                 pad={"r": 10, "t": 10},
                 showactive=True,
-                x=0.5,  # Center horizontally
+                x=0.5,
                 xanchor="center",
-                y=-0.4,  # Below the chart
-                yanchor="bottom"
+                y=1.05,
+                yanchor="top"
             )
         ]
     )
 
-    # Show the chart       
     if show_fig:
-        fig.show() 
+        fig.show()
+
     return fig

@@ -2,3 +2,5 @@ numpy
 pandas
 plotly
 mplfinance
+random2
+dash
