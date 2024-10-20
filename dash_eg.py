@@ -1,4 +1,4 @@
-import dash
+import dash 
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
@@ -61,9 +61,21 @@ app.layout = html.Div([
     # Next button
     html.Button('Next', id='next-button', n_clicks=0),
 
+    # Buy and Sell buttons
+    html.Div([
+        html.Button('Buy', id='buy-button', n_clicks=0),
+        html.Button('Sell', id='sell-button', n_clicks=0)
+    ]),
+
+    # Display for current position and PnL
+    html.Div(id='position-display'),
+    html.Div(id='pnl-display'),
+
     # Hidden div to store drawings and relayout data
     dcc.Store(id='shapes-store', data=[]),  # Store for shapes
     dcc.Store(id='zoom-store', data={}),    # Store for zoom/pan
+    dcc.Store(id='positions-store', data={'position': None, 'entry_price': None}),  # Store for positions
+    dcc.Store(id='pnl-store', data=0)  # Store for PnL
 ])
 
 # Step 4: Create a single callback for dropdowns and button
@@ -155,6 +167,57 @@ def store_shapes_and_zoom(relayout_data, current_shapes, current_zoom):
 
     return current_shapes, current_zoom
 
-# Step 6: Run the Dash app
+# Step 6: Execute trades and update PnL
+@app.callback(
+    [Output('positions-store', 'data'),
+     Output('pnl-store', 'data'),
+     Output('position-display', 'children'),
+     Output('pnl-display', 'children')],
+    [Input('buy-button', 'n_clicks'),
+     Input('sell-button', 'n_clicks'),
+     Input('next-button', 'n_clicks')],
+    [State('positions-store', 'data'),
+     State('pnl-store', 'data'),
+     State('candlestick-chart', 'figure')]
+)
+def execute_trade(buy_clicks, sell_clicks, next_clicks, position_data, pnl, fig):
+    ctx = dash.callback_context
+
+    # Ensure fig and data are valid before accessing
+    last_close = None
+    if fig and 'data' in fig and fig['data']:
+        last_close = fig['data'][0]['close'][-1]
+
+    # Update PnL after pressing "Next"
+    if next_clicks > 0 and last_close is not None:
+        if position_data['position'] == 'buy':
+            pnl = last_close - position_data['entry_price']  # Current PnL for long position
+        elif position_data['position'] == 'sell':
+            pnl = position_data['entry_price'] - last_close  # Current PnL for short position
+
+    if ctx.triggered:
+        if ctx.triggered[0]['prop_id'] == 'buy-button.n_clicks':
+            if position_data['position'] == 'sell':  # Closing short position
+                position_data['position'] = None  # Close position
+                position_data['entry_price'] = None
+            elif position_data['position'] == None and last_close is not None:  # Opening long position
+                position_data['position'] = 'buy'
+                position_data['entry_price'] = last_close
+
+        elif ctx.triggered[0]['prop_id'] == 'sell-button.n_clicks':
+            if position_data['position'] == 'buy':  # Closing long position
+                position_data['position'] = None  # Close position
+                position_data['entry_price'] = None
+            elif position_data['position'] == None and last_close is not None:  # Opening short position
+                position_data['position'] = 'sell'
+                position_data['entry_price'] = last_close
+
+    # Display current position and PnL
+    position_display = f"Current Position: {position_data['position'] if position_data['position'] else 'None'}"
+    pnl_display = f"Current PnL: {pnl:.2f}"
+
+    return position_data, pnl, position_display, pnl_display
+
+# Step 7: Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
