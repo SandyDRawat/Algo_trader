@@ -1,21 +1,23 @@
-import dash 
+import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
-from Ingest.data_ingest import data_in_csv  # Assuming the function is inside this module
+from preprocessing.data_ingest import data_in_csv  # Assuming the function is inside this module
 from preprocessing.cleaning import data_cleaning  # Assuming the cleaning logic is in this module
 from preprocessing.timeframe import convert_timeframe
 from Charts.candle_chart import interactive_candle_chart  # Assuming this function is defined as provided
-from indicators.indicator import sma, ema, rsi
+from preprocessing.indicator import sma, ema, rsi
+from Practice.random import randomdate_data
 
 # Step 2: Initialize Dash App
 app = dash.Dash(__name__)
 
 # Filepath to the dataset
 file_path = 'data/NIFTY50-Minute_data.csv'
+data = data_cleaning(data_in_csv(file_path))
+data = randomdate_data(data)
 
-# Load and prepare the data
-data = data_cleaning(data_in_csv(file_path)).head(5000)  # Increased data size
+
 data = sma(data)
 data = ema(data)
 data = rsi(data)
@@ -90,7 +92,7 @@ app.layout = html.Div([
 )
 def update_chart(selected_timeframe, selected_indicators, n_clicks, relayout_data, stored_shapes, stored_zoom):
     # Initial number of candles to display
-    initial_size = 1000
+    initial_size = 1080 + 45       
 
     # Track how many points to show, starting with initial_size, then adding n_clicks
     total_points = initial_size + n_clicks * 1  # Adjust the increment as needed
@@ -113,6 +115,12 @@ def update_chart(selected_timeframe, selected_indicators, n_clicks, relayout_dat
         for indicator in selected_indicators:
             if indicator in new_data.columns:
                 fig.add_trace(go.Scatter(x=new_data.index, y=new_data[indicator], mode='lines', name=indicator))
+
+    fig.update_xaxes(
+        rangebreaks=[
+            dict(bounds=["15:40", "09:05"])  # Hide hours outside of trading (e.g., 4 PM to 9 AM)
+        ]
+    )
 
     # Preserve zoom from relayoutData or stored zoom
     if relayout_data:
@@ -140,6 +148,10 @@ def update_chart(selected_timeframe, selected_indicators, n_clicks, relayout_dat
         title=f'Candlestick Chart ({selected_timeframe}) - {total_points} Candles',
         xaxis_title='Date', yaxis_title='Price'
     )
+
+    fig.update_xaxes(rangebreaks=[dict(bounds=[16, 9], pattern="hour"),
+                              dict(bounds=['sat', 'mon'])
+                              ])
 
     return fig
 

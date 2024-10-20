@@ -1,4 +1,4 @@
-from indicators.indicator import sma, ema, rsi, macd, bollinger_bands, atr, garman_klass
+from preprocessing.indicator import sma, ema, rsi, macd, bollinger_bands, atr, garman_klass
 
 def convert_timeframe(df, timeframe):
     """

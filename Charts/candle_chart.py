@@ -49,88 +49,7 @@ def interactive_candle_chart(data, show_fig=True):
                                      yaxis='y2'))
         else:
             fig.add_trace(go.Scatter(x=data.index, y=data[indicator], mode='lines', name=indicator))
-
-    # Function to update the chart with buy/sell markers (if 'Buy/Sell' exists)
-    def update_chart_wpts(timeframe):
-        # Convert data to selected timeframe using the updated convert_timeframe function
-        new_data = convert_timeframe(data, timeframe)
-
-        # Update candlestick traces
-        traces = {
-            'open': new_data['Open'],
-            'high': new_data['High'],
-            'low': new_data['Low'],
-            'close': new_data['Close'],
-            'x': new_data.index
-        }
-
-        # Check if 'Buy/Sell' column exists in the new data
-        if 'Buy/Sell' in new_data.columns:
-            # Extract buy and sell signals from 'Buy/Sell' column in new_data
-            buy_signals = new_data[new_data['Buy/Sell'] == 1]
-            sell_signals = new_data[new_data['Buy/Sell'] == -1]
-
-            # Create traces for buy/sell markers
-            buy_trace = go.Scatter(
-                x=buy_signals.index,
-                y=buy_signals['Close'],
-                marker=dict(symbol="triangle-up", color="green", size=10),
-                mode='markers',
-                name='Buy Signal'
-            )
-
-            sell_trace = go.Scatter(
-                x=sell_signals.index,
-                y=sell_signals['Close'],
-                marker=dict(symbol="triangle-down", color="red", size=10),
-                mode='markers',
-                name='Sell Signal'
-            )
-        else:
-            # If 'Buy/Sell' column does not exist, return empty traces
-            buy_trace = sell_trace = None
-
-        # Reapply indicators based on the resampled data
-        indicators = []
-        for col in new_data.columns:
-            if col not in ['Open', 'High', 'Low', 'Close', 'Volume', 'Buy/Sell']:
-                indicators.append(go.Scatter(
-                    x=new_data.index,
-                    y=new_data[col],
-                    mode='lines',
-                    name=col,
-                    yaxis='y2' if col == 'RSI' else 'y'
-                ))
-
-        return traces, indicators, buy_trace, sell_trace
-
-    # Function to update the chart without buy/sell markers
-    def update_chart(timeframe):
-        # Convert data to selected timeframe using provided function
-        new_data = convert_timeframe(data, timeframe)
-
-        # Update candlestick traces
-        traces = {
-            'open': new_data['Open'],
-            'high': new_data['High'],
-            'low': new_data['Low'],
-            'close': new_data['Close'],
-            'x': new_data.index
-        }
-
-        # Collect indicator values
-        indicators = []
-        for col in indicator_columns:
-            if col in new_data.columns:
-                indicators.append(go.Scatter(
-                    x=new_data.index,
-                    y=new_data[col],
-                    mode='lines',
-                    name=col,
-                    yaxis='y2' if col == 'RSI' else 'y'
-                ))
-
-        return traces, indicators
+   
 
     # Customize layout to include crosshair, gridlines, and drawing tools
     fig.update_layout(
@@ -148,8 +67,13 @@ def interactive_candle_chart(data, show_fig=True):
             side='right',
             showgrid=False,
             range=[0, 100]  # RSI usually ranges from 0 to 100
-        )
-    )
+        ))
+    
+
+    fig.update_xaxes(rangebreaks=[dict(bounds=[16, 9], pattern="hour"),
+                              dict(bounds=['sat', 'mon'])
+                              ])
+    
 
     # Add buttons for drawing tools, zoom, pan, and eraser
     fig.update_layout(
@@ -172,42 +96,8 @@ def interactive_candle_chart(data, show_fig=True):
                 y=1.2,  # Above the chart
                 yanchor="top"
             ),
-            dict(
-                type="buttons",
-                direction="left",
-                buttons=[
-                    dict(
-                        label="1 Min",
-                        method="update",
-                        args=[
-                            {'x': [update_chart_wpts("1min")[0]['x']] if buy_sell_exists else [update_chart("1min")[0]['x']],
-                             'open': [update_chart_wpts("1min")[0]['open']] if buy_sell_exists else [update_chart("1min")[0]['open']],
-                             'high': [update_chart_wpts("1min")[0]['high']] if buy_sell_exists else [update_chart("1min")[0]['high']],
-                             'low': [update_chart_wpts("1min")[0]['low']] if buy_sell_exists else [update_chart("1min")[0]['low']],
-                             'close': [update_chart_wpts("1min")[0]['close']] if buy_sell_exists else [update_chart("1min")[0]['close']]},
-                            update_chart_wpts("1min")[1] if buy_sell_exists else update_chart("1min")[1]
-                        ]
-                    ),
-                    dict(
-                        label="5 Min",
-                        method="update",
-                        args=[
-                            {'x': [update_chart_wpts("5min")[0]['x']] if buy_sell_exists else [update_chart("5min")[0]['x']],
-                             'open': [update_chart_wpts("5min")[0]['open']] if buy_sell_exists else [update_chart("5min")[0]['open']],
-                             'high': [update_chart_wpts("5min")[0]['high']] if buy_sell_exists else [update_chart("5min")[0]['high']],
-                             'low': [update_chart_wpts("5min")[0]['low']] if buy_sell_exists else [update_chart("5min")[0]['low']],
-                             'close': [update_chart_wpts("5min")[0]['close']] if buy_sell_exists else [update_chart("5min")[0]['close']]},
-                            update_chart_wpts("5min")[1] if buy_sell_exists else update_chart("5min")[1]
-                        ]
-                    ),
-                ],
-                pad={"r": 10, "t": 10},
-                showactive=True,
-                x=0.5,
-                xanchor="center",
-                y=1.05,
-                yanchor="top"
-            )
+            
+            
         ]
     )
 
