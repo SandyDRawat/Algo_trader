@@ -8,8 +8,6 @@ def data_cleaning(data):
     if not pd.api.types.is_datetime64_any_dtype(data['date']):
         data['date'] = pd.to_datetime(data['date'])
 
-    # Ensure 'date' is set as the index
-    data.set_index('date', inplace=True)
 
     # Rename columns to match a consistent format
     column_mapping = {
@@ -21,6 +19,9 @@ def data_cleaning(data):
         'volume': 'Volume'
     }
     data = data.rename(columns=column_mapping)
+
+    # Ensure 'date' is set as the index
+    data.set_index('Date', inplace=True)
 
     # Remove any rows with missing data
     data.dropna(inplace=True)
