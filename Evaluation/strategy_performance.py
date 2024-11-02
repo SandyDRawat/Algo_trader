@@ -77,4 +77,4 @@ def strategy_performance(data, stratrgy, start_date=None, end_date=None, initial
     final_capital = capital + position_size * data['Close'].iloc[-1]  # Final value
     profit_loss_percentage = ((final_capital - initial_capital) / initial_capital) * 100
 
-    return profit_loss_percentage, points_captured
+    return final_capital,profit_loss_percentage, points_captured
