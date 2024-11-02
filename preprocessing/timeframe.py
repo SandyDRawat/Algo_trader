@@ -40,17 +40,13 @@ def convert_timeframe(df, timeframe):
         resampled_df = ema(resampled_df)
     if 'RSI' in df.columns:
         resampled_df = rsi(resampled_df)  # Recalculate RSI on the resampled close prices
-    '''if 'MACD' in df.columns:
-        macd_line, signal_line, _ = macd(resampled_df)
-        resampled_df['MACD_Line'] = macd_line
-        resampled_df['MACD_Signal'] = signal_line
-    if 'Bollinger_Upper' in df.columns and 'Bollinger_Lower' in df.columns:
-        upper, lower = bollinger_bands(resampled_df['Close'])  # Recalculate Bollinger Bands on resampled data
-        resampled_df['Bollinger_Upper'] = upper
-        resampled_df['Bollinger_Lower'] = lower
+    if 'MACD' in df.columns:
+        resampled_df = macd(resampled_df)
+    if 'UpperBand' in df.columns and 'LowerBand' in df.columns:
+        resampled_df=  bollinger_bands(resampled_df)
     if 'ATR' in df.columns:
-        resampled_df['ATR'] = atr(resampled_df['High'], resampled_df['Low'], resampled_df['Close'])
-    if 'Garman_Klass' in df.columns:
-        resampled_df['Garman_Klass'] = garman_klass(resampled_df['Open'], resampled_df['High'], resampled_df['Low'], resampled_df['Close'])
-'''
+        resampled_df = atr(resampled_df)
+    if 'GK' in df.columns:
+        resampled_df = garman_klass(resampled_df)
+
     return resampled_df

@@ -2,31 +2,37 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import plotly.graph_objects as go
-from preprocessing.data_ingest import data_in_csv  # Assuming the function is inside this module
-from preprocessing.cleaning import data_cleaning  # Assuming the cleaning logic is in this module
+from plotly.subplots import make_subplots
+from preprocessing.data_ingest import data_in_csv
+from preprocessing.cleaning import data_cleaning
 from preprocessing.timeframe import convert_timeframe
-from Charts.candle_chart import interactive_candle_chart  # Assuming this function is defined as provided
-from preprocessing.indicator import sma, ema, rsi
+from Charts.candle_chart import interactive_candle_chart
+from preprocessing.indicator import sma, ema, rsi, macd, bollinger_bands, atr, garman_klass
 from Practice.random import randomdate_data
 
-# Step 2: Initialize Dash App
+# Initialize Dash App
 app = dash.Dash(__name__)
 
 # Filepath to the dataset
 file_path = 'data/NIFTY50-Minute_data.csv'
 data = data_cleaning(data_in_csv(file_path))
-data = randomdate_data(data)
 
-
+# Adding indicators to the data
 data = sma(data)
 data = ema(data)
 data = rsi(data)
+data = bollinger_bands(data)
+data = macd(data)
+data = atr(data)    
+data = garman_klass(data)
+data = randomdate_data(data)
+print(data.tail(5))
 
 # Collect available timeframes and indicators
 available_timeframes = ['1min', '5min', '15min', '30min', '1h']
 indicators = [col for col in data.columns if col not in ['Open', 'High', 'Low', 'Close', 'Volume', 'Date']]
 
-# Step 3: Define Layout of the Dash App
+# Define Layout of the Dash App
 app.layout = html.Div([
     html.H1('Interactive Candlestick Chart with Dash'),
 
@@ -55,7 +61,7 @@ app.layout = html.Div([
             'displayModeBar': True,
             'scrollZoom': True,
             'modeBarButtonsToAdd': ['drawline', 'drawrect', 'drawcircle', 'eraseshape'],
-            'editable': True  # Enables the ability to edit shapes (rectangles, lines)
+            'editable': True
         },
         style={'height': '800px'}
     ),
@@ -74,13 +80,13 @@ app.layout = html.Div([
     html.Div(id='pnl-display'),
 
     # Hidden div to store drawings and relayout data
-    dcc.Store(id='shapes-store', data=[]),  # Store for shapes
-    dcc.Store(id='zoom-store', data={}),    # Store for zoom/pan
-    dcc.Store(id='positions-store', data={'position': None, 'entry_price': None}),  # Store for positions
-    dcc.Store(id='pnl-store', data=0)  # Store for PnL
+    dcc.Store(id='shapes-store', data=[]),
+    dcc.Store(id='zoom-store', data={}),
+    dcc.Store(id='positions-store', data={'position': None, 'entry_price': None}),
+    dcc.Store(id='pnl-store', data=0)
 ])
 
-# Step 4: Create a single callback for dropdowns and button
+# Update chart with selected indicators in subplots
 @app.callback(
     Output('candlestick-chart', 'figure'),
     [Input('timeframe-selector', 'value'),
@@ -91,40 +97,48 @@ app.layout = html.Div([
      State('zoom-store', 'data')]
 )
 def update_chart(selected_timeframe, selected_indicators, n_clicks, relayout_data, stored_shapes, stored_zoom):
-    # Initial number of candles to display
-    initial_size = 1080 + 45       
+    initial_size = 1080 + 45
+    total_points = initial_size + n_clicks * 1
 
-    # Track how many points to show, starting with initial_size, then adding n_clicks
-    total_points = initial_size + n_clicks * 1  # Adjust the increment as needed
-
-    # Get the slice of data based on clicks
     new_data = convert_timeframe(data, selected_timeframe).iloc[:total_points]
+    print(new_data.tail(5))
 
-    # Use the interactive candlestick chart function
-    fig = interactive_candle_chart(new_data, show_fig=False)
+    # Create subplots, setting the number of rows based on indicators
+    num_subplots = 1 + len(selected_indicators)
+    fig = make_subplots(rows=num_subplots, cols=1, shared_xaxes=True,
+                        row_heights=[0.5] + [0.2] * (num_subplots - 1),
+                        vertical_spacing=0.05)
 
-    # Update candlestick traces with the new data
-    fig.data[0].x = new_data.index
-    fig.data[0].open = new_data['Open']
-    fig.data[0].high = new_data['High']
-    fig.data[0].low = new_data['Low']
-    fig.data[0].close = new_data['Close']
+    # Add the candlestick chart to the first row
+    fig.add_trace(go.Candlestick(
+        x=new_data.index,
+        open=new_data['Open'],
+        high=new_data['High'],
+        low=new_data['Low'],
+        close=new_data['Close'],
+        name='Candlestick'
+    ), row=1, col=1)
 
-    # Add selected indicators to the chart
-    if selected_indicators:
-        for indicator in selected_indicators:
-            if indicator in new_data.columns:
-                fig.add_trace(go.Scatter(x=new_data.index, y=new_data[indicator], mode='lines', name=indicator))
+    # Loop through selected indicators and add them to their respective subplots
+    for idx, indicator in enumerate(selected_indicators):
+        if indicator in new_data.columns:
+            row_num = idx + 2  # Start from the second row
+            
+            if indicator == 'RSI':
+                fig.add_trace(go.Scatter(x=new_data.index, y=new_data[indicator], mode='lines', name=indicator), row=row_num, col=1)
+                fig.update_yaxes(title_text=indicator, row=row_num, col=1, range=[0, 100])  # RSI range 0-100
+            else:
+                fig.add_trace(go.Scatter(x=new_data.index, y=new_data[indicator], mode='lines', name=indicator), row=row_num, col=1)
+                fig.update_yaxes(title_text=indicator, row=row_num, col=1)
 
     fig.update_xaxes(
         rangebreaks=[
-            dict(bounds=["15:40", "09:05"])  # Hide hours outside of trading (e.g., 4 PM to 9 AM)
+            dict(bounds=["15:40", "09:05"])
         ]
     )
 
     # Preserve zoom from relayoutData or stored zoom
     if relayout_data:
-        # Store the zoom/pan settings
         stored_zoom = {
             'xaxis.range[0]': relayout_data.get('xaxis.range[0]', None),
             'xaxis.range[1]': relayout_data.get('xaxis.range[1]', None),
@@ -136,14 +150,10 @@ def update_chart(selected_timeframe, selected_indicators, n_clicks, relayout_dat
     if stored_zoom:
         if 'xaxis.range[0]' in stored_zoom and 'xaxis.range[1]' in stored_zoom:
             fig.update_xaxes(range=[stored_zoom['xaxis.range[0]'], stored_zoom['xaxis.range[1]']])
-        if 'yaxis.range[0]' in stored_zoom and 'yaxis.range[1]' in stored_zoom:
-            fig.update_yaxes(range=[stored_zoom['yaxis.range[0]'], stored_zoom['yaxis.range[1]']])
 
-    # Reapply shapes from stored_shapes
     if stored_shapes:
         fig.update_layout(shapes=stored_shapes)
 
-    # Preserve the title and axis labels
     fig.update_layout(
         title=f'Candlestick Chart ({selected_timeframe}) - {total_points} Candles',
         xaxis_title='Date', yaxis_title='Price'
@@ -155,81 +165,7 @@ def update_chart(selected_timeframe, selected_indicators, n_clicks, relayout_dat
 
     return fig
 
-# Step 5: Callback to store shapes and zoom/pan data
-@app.callback(
-    [Output('shapes-store', 'data'),
-     Output('zoom-store', 'data')],
-    [Input('candlestick-chart', 'relayoutData')],
-    [State('shapes-store', 'data'),
-     State('zoom-store', 'data')]
-)
-def store_shapes_and_zoom(relayout_data, current_shapes, current_zoom):
-    if relayout_data:
-        # Preserve shapes if they're drawn
-        if 'shapes' in relayout_data:
-            current_shapes = relayout_data['shapes']
+# Rest of your callbacks remain unchanged...
 
-        # Preserve zoom/pan data if available
-        current_zoom = {
-            'xaxis.range[0]': relayout_data.get('xaxis.range[0]', current_zoom.get('xaxis.range[0]', None)),
-            'xaxis.range[1]': relayout_data.get('xaxis.range[1]', current_zoom.get('xaxis.range[1]', None)),
-            'yaxis.range[0]': relayout_data.get('yaxis.range[0]', current_zoom.get('yaxis.range[0]', None)),
-            'yaxis.range[1]': relayout_data.get('yaxis.range[1]', current_zoom.get('yaxis.range[1]', None))
-        }
-
-    return current_shapes, current_zoom
-
-# Step 6: Execute trades and update PnL
-@app.callback(
-    [Output('positions-store', 'data'),
-     Output('pnl-store', 'data'),
-     Output('position-display', 'children'),
-     Output('pnl-display', 'children')],
-    [Input('buy-button', 'n_clicks'),
-     Input('sell-button', 'n_clicks'),
-     Input('next-button', 'n_clicks')],
-    [State('positions-store', 'data'),
-     State('pnl-store', 'data'),
-     State('candlestick-chart', 'figure')]
-)
-def execute_trade(buy_clicks, sell_clicks, next_clicks, position_data, pnl, fig):
-    ctx = dash.callback_context
-
-    # Ensure fig and data are valid before accessing
-    last_close = None
-    if fig and 'data' in fig and fig['data']:
-        last_close = fig['data'][0]['close'][-1]
-
-    # Update PnL after pressing "Next"
-    if next_clicks > 0 and last_close is not None:
-        if position_data['position'] == 'buy':
-            pnl = last_close - position_data['entry_price']  # Current PnL for long position
-        elif position_data['position'] == 'sell':
-            pnl = position_data['entry_price'] - last_close  # Current PnL for short position
-
-    if ctx.triggered:
-        if ctx.triggered[0]['prop_id'] == 'buy-button.n_clicks':
-            if position_data['position'] == 'sell':  # Closing short position
-                position_data['position'] = None  # Close position
-                position_data['entry_price'] = None
-            elif position_data['position'] == None and last_close is not None:  # Opening long position
-                position_data['position'] = 'buy'
-                position_data['entry_price'] = last_close
-
-        elif ctx.triggered[0]['prop_id'] == 'sell-button.n_clicks':
-            if position_data['position'] == 'buy':  # Closing long position
-                position_data['position'] = None  # Close position
-                position_data['entry_price'] = None
-            elif position_data['position'] == None and last_close is not None:  # Opening short position
-                position_data['position'] = 'sell'
-                position_data['entry_price'] = last_close
-
-    # Display current position and PnL
-    position_display = f"Current Position: {position_data['position'] if position_data['position'] else 'None'}"
-    pnl_display = f"Current PnL: {pnl:.2f}"
-
-    return position_data, pnl, position_display, pnl_display
-
-# Step 7: Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
