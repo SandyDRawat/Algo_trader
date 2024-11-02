@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from preprocessing.timeframe import convert_timeframe
 
-def interactive_candle_chart(data, show_fig=True):
+def interactive_candle_chart(data, show_fig=True, show_indicators = True):
     """
     Create an interactive candlestick chart with Plotly that includes drawing tools, zoom slider,
     crosshair cursor, gridlines, indicators, and time interval selection.
@@ -43,12 +43,13 @@ def interactive_candle_chart(data, show_fig=True):
                                  name="Sell Signal"))
 
     # Add indicators as line charts; plot RSI on a secondary y-axis if it exists
-    for indicator in indicator_columns:
-        if indicator == 'RSI':
-            fig.add_trace(go.Scatter(x=data.index, y=data[indicator], mode='lines', name=indicator,
-                                     yaxis='y2'))
-        else:
-            fig.add_trace(go.Scatter(x=data.index, y=data[indicator], mode='lines', name=indicator))
+    if show_indicators:
+        for indicator in indicator_columns:
+            if indicator == 'RSI':
+                fig.add_trace(go.Scatter(x=data.index, y=data[indicator], mode='lines', name=indicator,
+                                        yaxis='y2'))
+            else:
+                fig.add_trace(go.Scatter(x=data.index, y=data[indicator], mode='lines', name=indicator))
    
 
     # Customize layout to include crosshair, gridlines, and drawing tools

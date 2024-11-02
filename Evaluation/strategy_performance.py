@@ -1,4 +1,3 @@
-import plotly.graph_objects as go
 from Strategy.SMA_strategy import sma_strategy
 from Strategy.BB_strategy import bollinger_band_strategy
 from Charts.candle_chart import interactive_candle_chart
