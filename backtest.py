@@ -5,6 +5,7 @@ from preprocessing.cleaning import data_cleaning
 from preprocessing.indicator import sma, ema, rsi, macd, bollinger_bands, atr, garman_klass
 from Evaluation.strategy_performance import strategy_performance
 import pandas as pd
+import numpy as np
 #from Practice.random import randomdate_data
 #from Practice.plotter import plotter
 #from Practice.performance import performance
@@ -33,4 +34,3 @@ print(f"Points Captured: {points}")
 print(f"Profit/Loss: {pnl}")
 
 #fig = interactive_candle_chart(data, show_fig=True)
-s

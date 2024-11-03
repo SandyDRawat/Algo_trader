@@ -7,20 +7,19 @@ from Strategy.MACD_crossover_strategy import macd_strategy
 from Strategy.Mean_reversion_strategy import mean_reversion_strategy
 from Strategy.Trend_following_breakout_strategy import breakout_strategy
 
-
-def strategy_performance(data, stratrgy, start_date=None, end_date=None, initial_capital=10000):
+def strategy_performance(data, strategy, start_date=None, end_date=None, initial_capital=10000):
     """
-    Backtesting of a selected strategy over a specific date range.
+    Backtesting of a selected strategy over a specific date range with support for long and short positions.
 
     Parameters:
-    - data: DataFrame with 'Close' price and strategy-specific columns
-    - stratrgy: Strategy name (e.g., 'sma', 'ema', 'bb', 'rsi', etc.)
+    - data: DataFrame with 'Close' price and strategy-specific columns.
+    - strategy: Strategy name (e.g., 'sma', 'bb', 'rsi', 'macd', 'idg', etc.).
     - start_date: Start date of the backtest in 'yyyy-mm-dd'. Default is the first date in the data.
     - end_date: End date of the backtest in 'yyyy-mm-dd'. Default is the last date in the data.
-    - initial_capital: The initial amount of money for backtesting (default is 10,000)
+    - initial_capital: The initial amount of money for backtesting (default is 10,000).
 
     Returns:
-    - Profit/Loss percentage and points captured by the strategy.
+    - Final capital, Profit/Loss percentage, and points captured by the strategy.
     """
 
     # Set default start and end dates if not provided
@@ -31,50 +30,62 @@ def strategy_performance(data, stratrgy, start_date=None, end_date=None, initial
 
     # Filter data based on the selected date range
     data = data[(data.index >= start_date) & (data.index <= end_date)]
-    
+
     # Apply the selected strategy
-    if stratrgy == 'sma':
+    if strategy == 'sma':
         data = sma_strategy(data)
-    elif stratrgy == 'bb':
+    elif strategy == 'bb':
         data = bollinger_band_strategy(data)
-    elif stratrgy == 'rsi':
+    elif strategy == 'rsi':
         data = rsi_strategy(data)
-    elif stratrgy == 'macd':
+    elif strategy == 'macd':
         data = macd_strategy(data)
-    elif stratrgy == 'idg':
+    elif strategy == 'idg':
         data = intraday_gap_strategy(data)
-    elif stratrgy == 'tfb':
+    elif strategy == 'tfb':
         data = breakout_strategy(data)
-    elif stratrgy == 'mr':
+    elif strategy == 'mr':
         data = mean_reversion_strategy(data)
     else:
         raise ValueError("Invalid strategy. Choose from 'sma', 'bb', 'rsi', 'macd', 'idg', 'tfb', 'mr'")
+
+    # Display interactive chart
     fig = interactive_candle_chart(data, show_fig=True)
-    
-    # Calculate points captured by the strategy
-    buy_prices = data.loc[data['Buy/Sell'] == 1, 'Close']
-    sell_prices = data.loc[data['Buy/Sell'] == -1, 'Close']
-    
-    points_captured = sell_prices.sum() - buy_prices.sum()
 
-    # Calculate profit/loss percentage
+    # Initialize capital and position tracking
     capital = initial_capital
-    position_size = 1  # Default number of shares
+    position = 0  # Tracks the number of shares in long or short
+    entry_price = 0  # Tracks the price at which position was entered
+    points_captured = 0
 
-    for i in range(len(data)):
-        if data['Buy/Sell'].iloc[i] == 1:  # Buy signal
-            buy_price = data['Close'].iloc[i]
-            shares = capital // buy_price  # Calculate how many shares we can buy
-            capital -= shares * buy_price
-            position_size = shares
-        
-        elif data['Buy/Sell'].iloc[i] == -1 and position_size > 0:  # Sell signal
-            sell_price = data['Close'].iloc[i]
-            capital += position_size * sell_price  # Sell all shares
-            position_size = 0
+    # Evaluate performance based on Position changes
+    for i in range(1, len(data)):
+        # Check for position change
+        if data['Position'].iloc[i] != data['Position'].iloc[i - 1]:
+            # Closing an existing position (either long or short)
+            if position != 0:
+                exit_price = data['Close'].iloc[i]
+                if position > 0:  # Long position
+                    profit = (exit_price - entry_price) * position
+                elif position < 0:  # Short position
+                    profit = (entry_price - exit_price) * abs(position)
+                
+                capital += profit
+                points_captured += profit
+                position = 0  # Reset position after closing
 
-    # Profit/Loss percentage calculation
-    final_capital = capital + position_size * data['Close'].iloc[-1]  # Final value
+            # Entering a new position (long or short)
+            if data['Position'].iloc[i] == 1:  # Enter long position
+                entry_price = data['Close'].iloc[i]
+                position = capital // entry_price  # Buy as many shares as possible
+                capital -= position * entry_price  # Deduct cost of shares
+
+            elif data['Position'].iloc[i] == -1:  # Enter short position
+                entry_price = data['Close'].iloc[i]
+                position = - (capital // entry_price)  # Short as many shares as possible
+
+    # Final capital after closing any open positions at the last price
+    final_capital = capital + (position * data['Close'].iloc[-1])
     profit_loss_percentage = ((final_capital - initial_capital) / initial_capital) * 100
 
-    return final_capital,profit_loss_percentage, points_captured
+    return final_capital, profit_loss_percentage, points_captured
