@@ -1,53 +1,72 @@
 import pandas as pd
 import numpy as np
 
-def intraday_gap_strategy(data, target_gap_close=0.01):
+def intraday_gap_strategy(data, target_gap_close=5, stop_loss=1):
     """
-    Implements an intraday gap strategy that generates only buy/sell signals.
-    - Buy when the stock opens much lower than the previous day's close (gap down).
-    - Sell when the stock opens much higher than the previous day's close (gap up).
-    - Close the position (sell) when the gap closes or reaches a specified target.
+    Implements an intraday gap strategy with a 'Position' column for position tracking.
+    - 1 indicates holding a long position (buy signal on gap down).
+    - -1 indicates holding a short position (sell signal on gap up).
+    - 0 indicates no position (position closed).
 
     Parameters:
     - data: DataFrame with 'Open' and 'Close' prices.
     - target_gap_close: The percentage change to consider the gap closed (default is 1%).
 
     Returns:
-    - DataFrame with 'Buy/Sell' column, where 1 = Buy, -1 = Sell, and 0 = Hold.
+    - DataFrame with an added 'Position' column.
     """
-    # Initialize 'Buy/Sell' column with zeros (hold signal)
-    data['Buy/Sell'] = 0
+    # Initialize 'Position' column with zeros (no position)
+    data['Position'] = 0
 
-    # Calculate the gap from previous day's close to the current day's open
+    # Calculate the gap from the previous day's close to the current day's open
     data['Gap'] = data['Open'] - data['Close'].shift(1)
+    print(data.columns)
 
-    # Buy signal for gap down (opens lower than previous close by a certain percentage)
-    data.loc[data['Gap'] < -0.01 * data['Close'].shift(1), 'Buy/Sell'] = 1
-
-    # Sell signal for gap up (opens higher than previous close by a certain percentage)
-    data.loc[data['Gap'] > 0.01 * data['Close'].shift(1), 'Buy/Sell'] = -1
-
-
-    position = 0
-    # Check for gap close exit after a buy or sell signal
+    # Loop through each row in the DataFrame
     for i in range(1, len(data)):
-        # If the previous row was a buy signal and gap close hasn't been met, hold (0)
-        if data['Buy/Sell'].iloc[i - 1]  == 1:
-            entry_price = data['Open'].iloc[i - 1]
-            gap_close_price = entry_price * (1 + target_gap_close)
-            if data['Close'].iloc[i] >= gap_close_price:
-                data.at[data.index[i], 'Buy/Sell'] = -1  # Close (sell) signal
-            else:
-                data.at[data.index[i], 'Buy/Sell'] = 0  # Hold signal
+        # If no position, check for entry signals
+        if data['Position'].iloc[i - 1] == 0:
+            # Buy signal for gap down (opens significantly lower than previous close)
+            if (
+            data['Gap'].iloc[i] < -0.01 * data['Close'].iloc[i - 1] 
+            and data.index[i].hour == 9 
+            and data.index[i].minute == 15
+        ):
+                data.at[data.index[i], 'Position'] = 1  # Long position
+                target_price = data['Open'].iloc[i] * (1 + target_gap_close/100)
+                stop_loss_price = data['Open'].iloc[i] * (1 - stop_loss / 100)
 
-        # If the previous row was a sell signal and gap close hasn't been met, hold (0)
-        elif data['Buy/Sell'].iloc[i - 1] == -1:
-            entry_price = data['Open'].iloc[i - 1]
-            gap_close_price = entry_price * (1 - target_gap_close)
-            if data['Close'].iloc[i] <= gap_close_price:
-                data.at[data.index[i], 'Buy/Sell'] = 1  # Close (buy) signal
+            # Sell signal for gap up (opens significantly higher than previous close)
+            elif (
+            data['Gap'].iloc[i] > 0.01 * data['Close'].iloc[i - 1] 
+            and data.index[i].hour == 9 
+            and data.index[i].minute == 15
+        ):
+                data.at[data.index[i], 'Position'] = -1  # Short position
+                target_price = data['Open'].iloc[i] * (1 - target_gap_close/100)
+                stop_loss_price = data['Open'].iloc[i] * (1 + stop_loss / 100)
+
+        # If holding a long position, check if it should be closed
+        elif data['Position'].iloc[i - 1] == 1:
+            if data['Close'].iloc[i] >= target_price:
+                data.at[data.index[i], 'Position'] = 0  # Close long position
+            elif data['Close'].iloc[i] <= stop_loss_price:
+                data.at[data.index[i], 'Position'] = 0
+            elif data.index[i].hour == 15 and data.index[i].minute == 15:
+                data.at[data.index[i], 'Position'] = 0
             else:
-                data.at[data.index[i], 'Buy/Sell'] = 0  # Hold signal
+                data.at[data.index[i], 'Position'] = 1  # Maintain long position
+
+        # If holding a short position, check if it should be closed
+        elif data['Position'].iloc[i - 1] == -1:
+            if data['Close'].iloc[i] <= target_price:
+                data.at[data.index[i], 'Position'] = 0  # Close short position
+            elif data['Close'].iloc[i] >= stop_loss_price:
+                data.at[data.index[i], 'Position'] = 0
+            elif data.index[i].hour == 15 and data.index[i].minute == 15:
+                data.at[data.index[i], 'Position'] = 0
+            else:
+                data.at[data.index[i], 'Position'] = -1  # Maintain short position
 
     # Remove temporary 'Gap' column
     data.drop(columns=['Gap'], inplace=True)

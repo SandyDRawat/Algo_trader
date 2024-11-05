@@ -50,6 +50,7 @@ def strategy_performance(data, strategy, start_date=None, end_date=None, initial
         raise ValueError("Invalid strategy. Choose from 'sma', 'bb', 'rsi', 'macd', 'idg', 'tfb', 'mr'")
 
     # Display interactive chart
+    print(data.tail(50))
     fig = interactive_candle_chart(data, show_fig=True)
 
     # Initialize capital and position tracking
@@ -71,7 +72,7 @@ def strategy_performance(data, strategy, start_date=None, end_date=None, initial
                     profit = (entry_price - exit_price) * abs(position)
                 
                 capital += profit
-                points_captured += profit
+                points_captured += profit/position
                 position = 0  # Reset position after closing
 
             # Entering a new position (long or short)

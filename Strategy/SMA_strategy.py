@@ -30,10 +30,10 @@ def sma_strategy(data):
         # Check if previous position was flat (no position)
         if data['Position'].iloc[i - 1] == 0:
             # Enter a long position if Close crosses above SMA
-            if data['Close'].iloc[i] > data['SMA'].iloc[i] and data['Close'].iloc[i - 1] <= data['SMA'].iloc[i - 1]:
+            if data['Close'].iloc[i] > data['SMA'].iloc[i] and data['Close'].iloc[i - 2] <= data['SMA'].iloc[i - 2]:
                 data.at[data.index[i], 'Position'] = 1  # Long position
             # Enter a short position if Close crosses below SMA
-            elif data['Close'].iloc[i] < data['SMA'].iloc[i] and data['Close'].iloc[i - 1] >= data['SMA'].iloc[i - 1]:
+            elif data['Close'].iloc[i] < data['SMA'].iloc[i] and data['Close'].iloc[i - 2] >= data['SMA'].iloc[i - 2]:
                 data.at[data.index[i], 'Position'] = -1  # Short position
 
         # If holding a long position, check if it should be closed or reversed

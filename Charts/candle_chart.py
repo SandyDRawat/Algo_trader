@@ -11,7 +11,7 @@ def interactive_candle_chart(data, show_fig=True, show_indicators = True):
     - data: DataFrame containing 'Open', 'High', 'Low', 'Close', 'Date', and optional indicator columns.
     """
     # Check if 'Buy/Sell' column is present
-    buy_sell_exists = 'Buy/Sell' in data.columns
+    buy_sell_exists = 'Position' in data.columns
 
     # Ensure 'Date' column is in datetime format and set as index
     if not isinstance(data.index, pd.DatetimeIndex):
@@ -19,7 +19,7 @@ def interactive_candle_chart(data, show_fig=True, show_indicators = True):
         data.set_index('Date', inplace=True)
 
     # Collect indicator columns from the data
-    indicator_columns = [col for col in data.columns if col not in ['Open', 'High', 'Low', 'Close', 'Volume', 'Buy/Sell']]
+    indicator_columns = [col for col in data.columns if col not in ['Open', 'High', 'Low', 'Close', 'Volume', 'Position']]
 
     # Create the initial candlestick chart
     fig = go.Figure(data=[go.Candlestick(x=data.index,
@@ -31,8 +31,8 @@ def interactive_candle_chart(data, show_fig=True, show_indicators = True):
 
     # Add buy and sell markers from the 'Buy/Sell' column if it exists
     if buy_sell_exists:
-        buy_signals = data[data['Buy/Sell'] == 1]
-        sell_signals = data[data['Buy/Sell'] == -1]
+        buy_signals = data[data['Position'] == 1]
+        sell_signals = data[data['Position'] == -1]
 
         fig.add_trace(go.Scatter(x=buy_signals.index, y=buy_signals['Close'], mode='markers',
                                  marker=dict(symbol="triangle-up", color="green", size=10),

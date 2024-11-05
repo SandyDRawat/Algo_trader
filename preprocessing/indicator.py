@@ -21,7 +21,7 @@ def rsi(data, period=14):
     data['RSI'] = 100 - (100 / (1 + rs))
     return data
 
-def bollinger_bands(data, period=20, num_std=2):
+def bollinger_bands(data, period=20, num_std=1.9):
     """Bollinger Bands"""
     data['SMA'] = data['Close'].rolling(window=period).mean()
     data['STD'] = data['Close'].rolling(window=period).std()
