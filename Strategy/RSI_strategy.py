@@ -1,5 +1,4 @@
-import pandas as pd
-import numpy as np
+from preprocessing.indicator import rsi
 
 def rsi_strategy(data, rsi_period=14, rsi_overbought=70, rsi_oversold=30):
     """
@@ -17,19 +16,15 @@ def rsi_strategy(data, rsi_period=14, rsi_overbought=70, rsi_oversold=30):
     - DataFrame with added 'RSI' and 'Buy/Sell' columns.
     """
     # Calculate RSI
-    delta = data['Close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=rsi_period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=rsi_period).mean()
-    rs = gain / loss
-    data['RSI'] = 100 - (100 / (1 + rs))
+    data = rsi(data)
 
     # Initialize 'Buy/Sell' column with zeros
-    data['Buy/Sell'] = 0
+    data['Position'] = 0
 
-    # Buy when RSI is below the oversold threshold
-    data.loc[data['RSI'] < rsi_oversold, 'Buy/Sell'] = 1
+    # Buy RSI is below the oversold threshold
+    data.loc[data['RSI'] < rsi_oversold, 'Position'] = 1
 
     # Sell when RSI is above the overbought threshold
-    data.loc[data['RSI'] > rsi_overbought, 'Buy/Sell'] = -1
+    data.loc[data['RSI'] > rsi_overbought, 'Position'] = -1
 
     return data
