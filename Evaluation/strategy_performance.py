@@ -6,6 +6,7 @@ from Strategy.RSI_strategy import rsi_strategy
 from Strategy.MACD_crossover_strategy import macd_strategy
 from Strategy.Mean_reversion_strategy import mean_reversion_strategy
 from Strategy.Trend_following_breakout_strategy import breakout_strategy
+from Strategy.multi_indicator_strategy import multi_indicator_strategy
 
 def strategy_performance(data, strategy, start_date=None, end_date=None, initial_capital=10000):
     """
@@ -46,8 +47,10 @@ def strategy_performance(data, strategy, start_date=None, end_date=None, initial
         data = breakout_strategy(data)
     elif strategy == 'mr':
         data = mean_reversion_strategy(data)
+    elif strategy == 'mis':
+        data = multi_indicator_strategy(data)
     else:
-        raise ValueError("Invalid strategy. Choose from 'sma', 'bb', 'rsi', 'macd', 'idg', 'tfb', 'mr'")
+        raise ValueError("Invalid strategy. Choose from 'sma', 'bb', 'rsi', 'macd', 'idg', 'tfb', 'mr','mis,")
 
     # Display interactive chart
     print(data.tail(50))

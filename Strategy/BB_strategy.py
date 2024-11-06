@@ -101,13 +101,16 @@ def bollinger_band_strategy(data):
         # If holding a long position, check if it should be closed
         elif data['Position'].iloc[i - 1] == 1:
             # Close long if price rises back above the Lower Band
-            if data['Close'].iloc[i] > data['LowerBand'].iloc[i]:
+            if data['Close'].iloc[i] > data['UpperBand'].iloc[i]:
                 data.at[data.index[i], 'Position'] = 0  # Close long position
+            else:
+                data.at[data.index[i], 'Position'] = 1
 
         # If holding a short position, check if it should be closed
         elif data['Position'].iloc[i - 1] == -1:
             # Close short if price falls back below the Upper Band
-            if data['Close'].iloc[i] < data['UpperBand'].iloc[i]:
+            if data['Close'].iloc[i] < data['LowerBand'].iloc[i]:
                 data.at[data.index[i], 'Position'] = 0  # Close short position
-
+            else:
+                data.at[data.index[i], 'Position'] = -1
     return data

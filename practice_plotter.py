@@ -105,8 +105,7 @@ def update_chart(selected_timeframe, selected_indicators, n_clicks, relayout_dat
 
     # Get the slice of data based on clicks
     new_data = convert_timeframe(data, selected_timeframe).iloc[:total_points]
-    print("asdfasdfasdf")
-    print()
+
 
     # Use the interactive candlestick chart function
     fig = interactive_candle_chart(new_data, show_fig=False, show_indicators=False)

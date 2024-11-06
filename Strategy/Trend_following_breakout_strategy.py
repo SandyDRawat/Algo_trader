@@ -12,19 +12,21 @@ def breakout_strategy(data, lookback=20):
     - lookback: Lookback period for identifying breakout levels (default is 20).
 
     Returns:
-    - DataFrame with added 'High', 'Low', and 'Buy/Sell' columns.
+    - DataFrame with added 'HHigh', 'LLow', and 'Position' columns.
     """
     # Calculate the highest high and lowest low over the lookback period
-    data['High'] = data['Close'].rolling(window=lookback).max()
-    data['Low'] = data['Close'].rolling(window=lookback).min()
+    data['HHigh'] = data['Close'].rolling(window=lookback, min_periods=1).max()
+    data['LLow'] = data['Close'].rolling(window=lookback, min_periods=1).min()
 
-    # Initialize 'Buy/Sell' column with zeros
-    data['Buy/Sell'] = 0
+    # Initialize 'Position' column with zeros (no position)
+    data['Position'] = 0
 
-    # Buy when the price breaks above the highest high
-    data.loc[(data['Close'] > data['High']) & (data['Close'].shift(1) <= data['High'].shift(1)), 'Buy/Sell'] = 1
+    # Generate buy and sell signals
+    data.loc[data['Close'] > data['HHigh'].shift(1), 'Position'] = 1   # Buy signal
+    data.loc[data['Close'] < data['LLow'].shift(1), 'Position'] = -1   # Sell signal
 
-    # Sell when the price breaks below the lowest low
-    data.loc[(data['Close'] < data['Low']) & (data['Close'].shift(1) >= data['Low'].shift(1)), 'Buy/Sell'] = -1
+    # Forward fill the positions to maintain trades until an opposite signal occurs
+    data['Position'] = data['Position'].replace(0, np.nan).ffill().fillna(0)
+
 
     return data
