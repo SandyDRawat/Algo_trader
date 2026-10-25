@@ -169,3 +169,17 @@ legend { font-size: 13px; color: var(--ink2); padding: 0 6px; } .logic { width: 
   .cond { grid-template-columns: 1fr 96px 1fr 22px; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* preset gallery: count, filters, live stats */
+.count { color: var(--saffron); font: 500 15px var(--mono); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.chip { font: 500 12.5px var(--sans); text-transform: capitalize; color: var(--ink2); background: none; border: 1px solid var(--line2);
+  border-radius: 99px; padding: 5px 12px; cursor: pointer; }
+.chip:hover { border-color: var(--ink3); } .chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip.ai { text-transform: none; border-color: color-mix(in oklab, var(--saffron) 60%, var(--line2)); color: var(--saffron); }
+.chip.ai.on { background: var(--saffron); color: var(--saffron-ink); }
+.preset .src { font: 11.5px var(--mono); color: var(--ink3); }
+.preset .stat { font: 12px var(--mono); color: var(--ink3); border-top: 1px dashed var(--line2); padding-top: 8px; }
+.preset .stat b { font-weight: 500; }
+.preset.ai { border-color: color-mix(in oklab, var(--saffron) 35%, var(--line)); }
+.preset.ai .t::after { content: " ✦"; color: var(--saffron); font-size: 16px; }

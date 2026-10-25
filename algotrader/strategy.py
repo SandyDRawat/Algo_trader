@@ -17,8 +17,9 @@ from pydantic import BaseModel, Field
 
 from . import indicators as ind
 
-Op = Literal["<", ">", "<=", ">=", "crosses_above", "crosses_below"]
+Op = Literal["<", ">", "<=", ">=", "==", "crosses_above", "crosses_below"]
 TERM = re.compile(r"^\s*([a-z_]+)\s*(?:\(([^)]*)\))?\s*$")
+SCALED = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*\*\s*(.+)$")
 CODE_DIR = Path(os.environ.get("ALGO_STRATEGY_DIR", "strategies"))
 
 
@@ -31,6 +32,8 @@ class Condition(BaseModel):
 class Strategy(BaseModel):
     name: str = "My strategy"
     description: str = ""
+    category: str = Field("custom", description="trend, mean-reversion, momentum, breakout, calendar, intraday, volatility")
+    source: str = Field("", description="Where the idea comes from, e.g. 'Larry Connors' or 'AI-discovered'")
     kind: Literal["rules", "code"] = "rules"
     code_file: str | None = Field(None, description="Only for kind='code': file name in ./strategies")
     symbol: str = "NIFTY"
@@ -59,6 +62,9 @@ def term(df, t):
         return float(t)
     except ValueError:
         pass
+    scaled = SCALED.match(t)
+    if scaled:  # "1.02*sma(20)" or "0.5*atr(14)"
+        return float(scaled.group(1)) * term(df, scaled.group(2))
     m = TERM.match(t.lower())
     if not m:
         raise ValueError(f"Can't read term {t!r}. Use a number, a price like 'close', or e.g. 'sma(50)'.")
@@ -81,10 +87,10 @@ def condition(df, c):
         if op == "crosses_above":
             return (a > b) & (a.shift() <= b_prev)
         return (a < b) & (a.shift() >= b_prev)
-    return {"<": a < b, ">": a > b, "<=": a <= b, ">=": a >= b}[op]
+    return {"<": a < b, ">": a > b, "<=": a <= b, ">=": a >= b, "==": a == b}[op]
 
 
-FLIP = {"<": ">", ">": "<", "<=": ">=", ">=": "<=", "crosses_above": "crosses_below", "crosses_below": "crosses_above"}
+FLIP = {"<": ">", ">": "<", "<=": ">=", ">=": "<=", "==": "==", "crosses_above": "crosses_below", "crosses_below": "crosses_above"}
 
 
 def combine(df, conds, logic):
@@ -116,28 +122,3 @@ def load_code(name):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
-
-
-def C(left, op, right):
-    return Condition(left=left, op=op, right=right)
-
-
-PRESETS = {p.name: p for p in [
-    Strategy(name="Golden cross 50/200", description="Classic trend filter: buy when the 50-day average crosses above the 200-day, sell on the reverse cross.",
-             entry=[C("sma(50)", "crosses_above", "sma(200)")], exit=[C("sma(50)", "crosses_below", "sma(200)")], start="2016-01-01"),
-    Strategy(name="RSI dip buy", description="Buy oversold dips (RSI below 30), sell when RSI recovers above 55. Stop 3%.",
-             entry=[C("rsi(14)", "<", 30)], exit=[C("rsi(14)", ">", 55)], stop_loss_pct=3, start="2016-01-01"),
-    Strategy(name="Bollinger band bounce", description="Mean reversion: buy a close below the lower band, exit at the middle band.",
-             entry=[C("close", "<", "bb_lower(20,2)")], exit=[C("close", ">", "bb_mid(20,2)")], stop_loss_pct=4, start="2016-01-01"),
-    Strategy(name="MACD crossover", description="Momentum: buy when MACD crosses above its signal line, exit on the cross back.",
-             entry=[C("macd(12,26,9)", "crosses_above", "macd_signal(12,26,9)")], exit=[C("macd(12,26,9)", "crosses_below", "macd_signal(12,26,9)")], start="2016-01-01"),
-    Strategy(name="20-day breakout", description="Trend following: buy a close above the prior 20-day high, exit below the prior 10-day low.",
-             entry=[C("close", ">", "highest(20)")], exit=[C("close", "<", "lowest(10)")], start="2016-01-01"),
-    Strategy(name="Supertrend swing", description="Ride the trend while price stays above Supertrend(10,3).",
-             entry=[C("close", "crosses_above", "supertrend(10,3)")], exit=[C("close", "crosses_below", "supertrend(10,3)")], start="2016-01-01"),
-    Strategy(name="Trend + RSI pullback", description="Only buy dips inside an uptrend: price above the 200-day average and RSI under 40.",
-             entry=[C("close", ">", "sma(200)"), C("rsi(14)", "<", 40)], exit=[C("rsi(14)", ">", 65)], stop_loss_pct=5, start="2016-01-01"),
-    Strategy(name="Opening gap fade (intraday)", description="5-min NIFTY: short a gap-up above 0.7% at the open, target 0.5%, stop 0.5%, square off 15:15.",
-             timeframe="5min", direction="short", segment="futures", entry=[C("gap_pct", ">", 0.7)], take_profit_pct=0.5,
-             stop_loss_pct=0.5, intraday_exit="15:15", start="2023-01-01", end="2023-12-31"),
-]}

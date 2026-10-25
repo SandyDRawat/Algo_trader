@@ -2,7 +2,7 @@
 
 Test trading ideas on Indian market data before you risk a rupee, then practise them by hand.
 
-- **Strategy Lab**: pick one of 8 classic strategies, build rules in a form, or describe an idea in plain English.
+- **Strategy Lab**: pick one of the built-in strategies (classics, published research and AI-discovered), build rules in a form, or describe an idea in plain English.
   Backtests fill on the next bar's open and pay real Indian charges (STT, exchange, SEBI, stamp duty, GST) plus
   slippage, and a coach explains what the result means. Charts show trades and indicators.
 - **Replay & Paper**: replay a real past NIFTY session candle by candle and trade it with a paper account that has
@@ -37,9 +37,12 @@ target, max bars, square-off time, capital, sizing, segment and slippage. The te
 - numbers
 - `open high low close volume`
 - `sma(n) ema(n) rsi(n) bb_upper(n,k) bb_lower(n,k) bb_mid(n,k) macd(f,s,sig) macd_signal(f,s,sig) atr(n)`
-- `highest(n) lowest(n) pct_change(n) gap_pct supertrend(n,k)`
+- `highest(n) lowest(n) highest_close(n) lowest_close(n) pct_change(n) gap_pct supertrend(n,k)`
+- `adx(n) stoch_k(n) williams_r(n) cci(n) ibs keltner_upper(n,k) keltner_lower(n,k) down_streak up_streak nr(n)`
+- calendar and session terms: `dow month hhmm tdom tdleft prev_close prev_high prev_low day_open or_high(n) or_low(n)`
+- scaled terms such as `1.02*sma(20)`
 
-The operators are `< > <= >= crosses_above crosses_below`.
+The operators are `< > <= >= == crosses_above crosses_below`.
 
 Self-hosters can write anything in Python. Put a file in `./strategies/` with
 `def signals(df) -> (entry: pd.Series[bool], exit: pd.Series[bool])`, set `ALGO_ALLOW_CODE=1`, then post a strategy

@@ -50,9 +50,11 @@ function chart(el, opts = {}) {
 const candleStyle = () => ({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down") });
 
 /* ---------- LAB ---------- */
-const OPS = [["<", "below"], [">", "above"], ["<=", "≤"], [">=", "≥"], ["crosses_above", "crosses above"], ["crosses_below", "crosses below"]];
+const OPS = [["<", "below"], [">", "above"], ["<=", "≤"], [">=", "≥"], ["==", "equals"], ["crosses_above", "crosses above"], ["crosses_below", "crosses below"]];
 const TERMS = ["close", "open", "high", "low", "sma(50)", "sma(200)", "ema(20)", "rsi(14)", "bb_upper(20,2)", "bb_lower(20,2)", "bb_mid(20,2)",
-  "macd(12,26,9)", "macd_signal(12,26,9)", "atr(14)", "highest(20)", "lowest(10)", "pct_change(1)", "gap_pct", "supertrend(10,3)"];
+  "macd(12,26,9)", "macd_signal(12,26,9)", "atr(14)", "highest(20)", "lowest(10)", "highest_close(7)", "lowest_close(7)", "pct_change(1)",
+  "gap_pct", "supertrend(10,3)", "adx(14)", "stoch_k(14)", "williams_r(14)", "cci(20)", "ibs", "keltner_upper(20,2)", "keltner_lower(20,2)",
+  "down_streak", "up_streak", "nr(7)", "dow", "month", "hhmm", "tdom", "tdleft", "prev_close", "prev_high", "prev_low", "day_open", "or_high(3)", "or_low(3)", "1.02*sma(20)"];
 const lab = { s: null, datasets: [], chat: [], result: null };
 
 const blank = () => ({ name: "My strategy", symbol: "NIFTY", timeframe: "1D", start: "2016-01-01", end: null, direction: "long",
@@ -63,12 +65,31 @@ const blank = () => ({ name: "My strategy", symbol: "NIFTY", timeframe: "1D", st
 async function initLab() {
   $("#terms").append(...TERMS.map((t) => h("option", { value: t })));
   const [presets, datasets] = await Promise.all([api("/api/presets"), api("/api/datasets")]);
-  lab.datasets = datasets;
-  $("#presets").append(...presets.map((p, i) => h("button", { class: "preset", type: "button", style: `animation-delay:${i * 40}ms`, onclick: () => usePreset(p) },
-    h("span", { class: "t" }, p.name), h("span", { class: "d" }, p.description),
-    h("span", { class: "tags" }, h("span", { class: "tag" }, p.symbol), h("span", { class: "tag" }, p.timeframe), h("span", { class: "tag" }, p.direction)))));
+  lab.datasets = datasets; lab.presets = presets;
+  $("#preset-count").textContent = presets.length;
+  const cats = ["all", ...new Set(presets.map((p) => p.category))];
+  const ai = presets.filter((p) => p.source === "AI-discovered").length;
+  $("#preset-filters").replaceChildren(...cats.map((c) => h("button", { type: "button", class: "chip" + (c === "all" ? " on" : ""), "data-cat": c,
+    onclick: (e) => { $$(".chip").forEach((x) => x.classList.toggle("on", x === e.target)); renderPresets(c); } },
+    c === "all" ? `All ${presets.length}` : `${c} ${presets.filter((p) => p.category === c).length}`)),
+    ai ? h("button", { type: "button", class: "chip ai", "data-cat": "ai", onclick: (e) => { $$(".chip").forEach((x) => x.classList.toggle("on", x === e.target)); renderPresets("ai"); } }, `✦ AI-discovered ${ai}`) : null);
+  renderPresets("all");
+  api("/api/presets/stats").then((st) => { lab.stats = st; renderPresets($(".chip.on")?.dataset.cat || "all"); }).catch(() => {});
   fillSymbols($("#f-symbol")); fillSymbols($("#r-symbol"));
   setStrategy(blank());
+}
+function renderPresets(cat) {
+  const list = lab.presets.filter((p) => cat === "all" || p.category === cat || (cat === "ai" && p.source === "AI-discovered"));
+  $("#presets").replaceChildren(...list.map((p, i) => {
+    const st = lab.stats?.[p.name];
+    return h("button", { class: "preset" + (p.source === "AI-discovered" ? " ai" : ""), type: "button", style: `animation-delay:${i * 30}ms`, onclick: () => usePreset(p) },
+      h("span", { class: "t" }, p.name), h("span", { class: "d" }, p.description),
+      p.source && h("span", { class: "src" }, p.source),
+      h("span", { class: "tags" }, h("span", { class: "tag" }, p.category), h("span", { class: "tag" }, p.timeframe), h("span", { class: "tag" }, p.direction)),
+      h("span", { class: "stat" }, st
+        ? [h("b", { class: cls(st.cagr_pct) }, pct(st.cagr_pct) + "/yr"), ` after costs · ${st.trades} trades · DD ${st.max_drawdown_pct}%`]
+        : lab.stats ? "no trades in range" : "backtesting…"));
+  }));
 }
 function fillSymbols(sel) {
   sel.replaceChildren(...lab.datasets.map((d) => h("option", { value: d.symbol }, d.symbol)));

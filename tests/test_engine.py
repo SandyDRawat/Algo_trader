@@ -68,3 +68,20 @@ def test_indicators_warm_up_before_window():
 def test_delivery_charges_match_contract_note():
     # ₹1,00,000 delivery buy: STT 100 + exchange 2.97 + SEBI 0.10 + stamp 15 + GST on (2.97 + 0.10)
     assert costs.charges("equity_delivery", "buy", 1000, 100) == pytest.approx(118.62, abs=0.01)
+
+
+def test_session_terms_never_peek_ahead():
+    from algotrader import indicators as ind
+    idx = pd.date_range("2024-01-31 09:15", periods=4, freq="5min").append(pd.date_range("2024-02-01 09:15", periods=4, freq="5min"))
+    df = pd.DataFrame({"open": range(8), "high": [10, 30, 20, 99, 5, 6, 7, 8], "low": [1] * 8, "close": range(8)}, index=idx, dtype=float)
+    orh = ind.or_high(df, 2)
+    assert orh.iloc[:2].isna().all() and orh.iloc[2] == 30  # range only known once its bars are done; 99 comes later
+    assert ind.tdleft(df).iloc[0] == 0 and ind.tdom(df).iloc[-1] == 1  # Jan 31 last session, Feb 1 first
+    assert ind.prev_close(df).iloc[4] == 3 and pd.isna(ind.prev_close(df).iloc[0])
+
+
+def test_equals_and_scaled_terms():
+    from algotrader.strategy import condition, term
+    df = bars([(100, 101, 99, 100)] * 25)
+    assert float(term(df, "1.5*sma(20)").iloc[-1]) == 150
+    assert condition(df, Condition(left="close", op="==", right=100)).all()

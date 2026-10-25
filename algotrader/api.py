@@ -1,4 +1,5 @@
 """HTTP API + the web app.  uv run uvicorn algotrader.api:app --reload"""
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -8,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import data, engine, paper
-from .strategy import PRESETS, Strategy
+from .presets import PRESETS
+from .strategy import Strategy
 
 app = FastAPI(title="AlgoTrader", version="2.0.0a1")
 MAX_UPLOAD = 50 * 1024 * 1024
@@ -22,6 +24,24 @@ async def user_error(_: Request, e: ValueError):
 @app.get("/api/presets")
 def presets():
     return list(PRESETS.values())
+
+
+@app.get("/api/presets/stats")
+def preset_stats():
+    return _preset_stats()
+
+
+@lru_cache(maxsize=1)
+def _preset_stats():
+    """Headline numbers for every preset, so the gallery can show what each one actually did."""
+    out = {}
+    for name, s in PRESETS.items():
+        try:
+            m = engine.run(s)["metrics"]
+        except ValueError:
+            continue
+        out[name] = {k: m[k] for k in ("cagr_pct", "benchmark_cagr_pct", "trades", "profit_factor", "max_drawdown_pct", "win_rate_pct")}
+    return out
 
 
 @app.get("/api/datasets")

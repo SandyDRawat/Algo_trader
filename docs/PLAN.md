@@ -61,3 +61,15 @@ r/IndianStreetBets, r/IndianStockMarket, r/StockMarketIndia, r/IndiaAlgoTrading:
 - Data licensing for the hosted site (EOD display, vendor redistribution).
 - Chat cost on the hosted site: needs per-user caps.
 - Regulatory: no advice, no return promises; execution features must follow SEBI retail-algo framework.
+
+## Strategy library findings (Oct 2026)
+36 built-in strategies: 8 classics, 19 from published research, 9 AI-discovered (tuned 2015–20, kept only if positive
+after costs on 2021–24 too). On NIFTY spot after Indian costs:
+- Trend/momentum works (EMA 20/50, Turtle, 200-day filter, CCI/Keltner/stochastic strength), mostly by cutting drawdown;
+  few beat buy-and-hold outright in a bull market.
+- Turn-of-the-month is the strongest calendar effect (positive in both periods).
+- Short-term mean reversion from US research (Connors RSI(2), IBS, Double 7) fails on 2015–20 NIFTY, even gross.
+- Simple intraday ideas (ORB, previous-day-high breakout, gap fade/fill) lose heavily: the gross edge is smaller than costs.
+- Overnight drift is real (+0.1%/day gross) but round-trip costs erase it.
+Wanted next (from the discovery run): arithmetic between terms, daily indicators on intraday bars, bars-since-entry,
+once-per-day entry, expiry-day term, set membership (month in 2,3).

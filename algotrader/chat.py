@@ -5,7 +5,8 @@ import os
 from pydantic import BaseModel, Field
 
 from . import data
-from .strategy import PRESETS, Strategy
+from .presets import PRESETS
+from .strategy import Strategy
 
 MODEL = os.environ.get("ALGO_CHAT_MODEL", "claude-opus-5-5")
 
@@ -15,8 +16,9 @@ You are not a financial adviser: never promise returns or recommend real trades.
 Each turn, return the COMPLETE current strategy (start from the one given, apply the user's changes) plus a short reply.
 Rule terms: numbers; price columns open, high, low, close, volume; indicators sma(n), ema(n), rsi(n), bb_upper(n,k),
 bb_lower(n,k), bb_mid(n,k), macd(fast,slow,signal), macd_signal(fast,slow,signal), atr(n), highest(n) (prior n-bar high),
-lowest(n), pct_change(n) (in %), gap_pct (opening gap vs previous close, in %), supertrend(n,k).
-Ops: < > <= >= crosses_above crosses_below. entry_logic/exit_logic: all = AND, any = OR.
+lowest(n), pct_change(n) (in %), gap_pct (opening gap vs previous close, in %), supertrend(n,k),
+highest_close(n), lowest_close(n), adx(n), stoch_k(n), williams_r(n), cci(n), ibs (close position in the bar's range, 0-1), keltner_upper(n,k), keltner_lower(n,k), down_streak, up_streak (closes in a row), nr(n) (1 if narrowest range of n bars), dow (0=Mon), month, hhmm (e.g. 930), tdom (trading day of month), tdleft (sessions left in month), prev_close, prev_high, prev_low, day_open, or_high(n), or_low(n) (opening range of the day's first n bars). Any term can be scaled, e.g. 1.02*sma(20).
+Ops: < > <= >= == crosses_above crosses_below. entry_logic/exit_logic: all = AND, any = OR.
 Stops/targets are percentages from the entry price. Timeframes: 1min 5min 15min 1h 1D 1W (intraday needs intraday data).
 Segments: equity_delivery (swing/positional), equity_intraday, futures, options. Shorting needs futures or intraday.
 

@@ -1,0 +1,363 @@
+[
+ {
+  "name": "Gap-up follow-through",
+  "description": "When NIFTY opens 0.5%+ above yesterday's close, buy the next open and hold 2 days: gap-ups tend to keep going. OOS 2021\u201324: +1.8%/yr, PF 1.1",
+  "category": "momentum",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1D",
+  "start": "2016-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "gap_pct",
+    "op": ">",
+    "right": 0.5
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": 2,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "futures",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "Calm uptrend rider",
+  "description": "Hold only while calm and rising: above the 50-day average with ATR under 1.5% of price. Exit on a break or a volatility spike. OOS 2021\u201324: +7.0%/yr, PF 2.1",
+  "category": "volatility",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1D",
+  "start": "2016-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "close",
+    "op": ">",
+    "right": "sma(50)"
+   },
+   {
+    "left": "atr(14)",
+    "op": "<",
+    "right": "0.015*close"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [
+   {
+    "left": "close",
+    "op": "<",
+    "right": "sma(50)"
+   },
+   {
+    "left": "atr(14)",
+    "op": ">",
+    "right": "0.025*close"
+   }
+  ],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": null,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "equity_delivery",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "Keltner breakout in uptrend",
+  "description": "Buy a close above a tight Keltner band (EMA20 + 1.5 ATR) while above the 100-day average. Exit below the 10-day EMA. OOS 2021\u201324: +7.9%/yr, PF 3.5",
+  "category": "breakout",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1D",
+  "start": "2016-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "close",
+    "op": "crosses_above",
+    "right": "keltner_upper(20,1.5)"
+   },
+   {
+    "left": "close",
+    "op": ">",
+    "right": "sma(100)"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [
+   {
+    "left": "close",
+    "op": "<",
+    "right": "ema(10)"
+   }
+  ],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": null,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "equity_delivery",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "Yesterday's-high trend breakout",
+  "description": "Buy a close above yesterday's high while above the 50-day average. Exit below the 5-day low. OOS 2021\u201324: +3.5%/yr, PF 1.3",
+  "category": "breakout",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1D",
+  "start": "2016-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "close",
+    "op": ">",
+    "right": "sma(50)"
+   },
+   {
+    "left": "close",
+    "op": ">",
+    "right": "prev_high"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [
+   {
+    "left": "close",
+    "op": "<",
+    "right": "lowest(5)"
+   }
+  ],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": null,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "equity_delivery",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "Stochastic strength rider",
+  "description": "Buy when Stochastic(14) is above 80 in an uptrend (above the 100-day average): strength persists. Exit below 50. OOS 2021\u201324: +4.3%/yr, PF 1.7",
+  "category": "momentum",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1D",
+  "start": "2016-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "stoch_k(14)",
+    "op": ">",
+    "right": 80.0
+   },
+   {
+    "left": "close",
+    "op": ">",
+    "right": "sma(100)"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [
+   {
+    "left": "stoch_k(14)",
+    "op": "<",
+    "right": 50.0
+   }
+  ],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": null,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "equity_delivery",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "CCI thrust in uptrend",
+  "description": "Buy when CCI(20) crosses above +100 while above the 50-day average. Exit when CCI falls below zero. OOS 2021\u201324: +9.8%/yr, PF 3.4",
+  "category": "momentum",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1D",
+  "start": "2016-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "cci(20)",
+    "op": "crosses_above",
+    "right": 100.0
+   },
+   {
+    "left": "close",
+    "op": ">",
+    "right": "sma(50)"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [
+   {
+    "left": "cci(20)",
+    "op": "<",
+    "right": 0.0
+   }
+  ],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": null,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "equity_delivery",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "Dip in uptrend",
+  "description": "Buy a 1%+ one-day drop while above the 200-day average; hold 3 days. Thin in-sample edge (PF 1.05). OOS 2021\u201324: +4.0%/yr, PF 1.7",
+  "category": "mean-reversion",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1D",
+  "start": "2016-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "pct_change(1)",
+    "op": "<",
+    "right": -1.0
+   },
+   {
+    "left": "close",
+    "op": ">",
+    "right": "sma(200)"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": 3,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "futures",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "Hourly RSI thrust",
+  "description": "Hourly bars: buy when RSI(14) crosses above 60 while above the 200-bar EMA; exit below RSI 45. Holds overnight. OOS 2021\u201324: +4.2%/yr, PF 1.4",
+  "category": "momentum",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "1h",
+  "start": "2021-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "rsi(14)",
+    "op": "crosses_above",
+    "right": 60.0
+   },
+   {
+    "left": "close",
+    "op": ">",
+    "right": "ema(200)"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [
+   {
+    "left": "rsi(14)",
+    "op": "<",
+    "right": 45.0
+   }
+  ],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": null,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "futures",
+  "slippage_pct": 0.05
+ },
+ {
+  "name": "15-min trend cross",
+  "description": "15-minute EMA50 crossing above EMA200 is a buy, the reverse cross a sell. Holds overnight. OOS 2021\u201324: +6.1%/yr, PF 1.5",
+  "category": "trend",
+  "source": "AI-discovered",
+  "kind": "rules",
+  "code_file": null,
+  "symbol": "NIFTY",
+  "timeframe": "15min",
+  "start": "2021-01-01",
+  "end": null,
+  "direction": "long",
+  "entry": [
+   {
+    "left": "ema(50)",
+    "op": "crosses_above",
+    "right": "ema(200)"
+   }
+  ],
+  "entry_logic": "all",
+  "exit": [
+   {
+    "left": "ema(50)",
+    "op": "crosses_below",
+    "right": "ema(200)"
+   }
+  ],
+  "exit_logic": "any",
+  "stop_loss_pct": null,
+  "take_profit_pct": null,
+  "max_bars": null,
+  "intraday_exit": null,
+  "capital": 100000,
+  "position_pct": 100,
+  "segment": "futures",
+  "slippage_pct": 0.05
+ }
+]
