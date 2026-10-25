@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AlgoTrader · Strategy Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+<aside class="rail">
+  <a class="brand" href="#lab"><span class="brand-mark">₹</span><span>Algo<em>Trader</em></span></a>
+  <nav>
+    <a href="#lab" data-view="lab"><b>01</b>Strategy Lab</a>
+    <a href="#replay" data-view="replay"><b>02</b>Replay &amp; Paper</a>
+    <a href="#portfolio" data-view="portfolio"><b>03</b>Portfolio</a>
+    <a href="#data" data-view="data"><b>04</b>Data</a>
+    <a href="#connect" data-view="connect"><b>05</b>Connect an AI</a>
+  </nav>
+  <p class="rail-note">For learning. Backtests include real Indian charges, yet past results are not a promise. Not investment advice.</p>
+</aside>
+
+<main>
+<!-- ============ LAB ============ -->
+<section id="view-lab" class="view">
+  <header class="hero">
+    <p class="kicker">Strategy Lab</p>
+    <h1>Test an idea on <em>nine years</em> of NIFTY before you risk a rupee.</h1>
+    <form id="ask" class="ask">
+      <input id="ask-input" autocomplete="off" placeholder="Describe a strategy… e.g. “Buy NIFTY when RSI drops below 30, sell at +4% or −2%”">
+      <button class="btn primary" type="submit">Build it</button>
+    </form>
+    <div id="thread" class="thread" hidden></div>
+  </header>
+
+  <div class="block">
+    <div class="block-head"><h2>Or start from one of <span id="preset-count" class="count">…</span> strategies</h2><span class="muted">classics, published research and AI-discovered · live results on NIFTY after costs</span></div>
+    <div id="preset-filters" class="chips"></div>
+    <div id="presets" class="presets"></div>
+  </div>
+
+  <div class="workbench">
+    <form id="builder" class="panel builder" autocomplete="off">
+      <div class="panel-head"><h2>Rules</h2><input id="f-name" class="name-input" aria-label="Strategy name"></div>
+      <div class="grid2">
+        <label>Symbol<select id="f-symbol"></select></label>
+        <label>Timeframe<select id="f-timeframe"></select></label>
+        <label>From<input id="f-start" type="date"></label>
+        <label>To<input id="f-end" type="date"></label>
+        <label>Direction<select id="f-direction"><option value="long">Long (buy first)</option><option value="short">Short (sell first)</option></select></label>
+        <label>Segment<select id="f-segment"><option value="equity_delivery">Equity delivery</option><option value="equity_intraday">Equity intraday</option><option value="futures">Futures</option><option value="options">Options</option></select></label>
+      </div>
+      <fieldset><legend>Enter when <select id="f-entry-logic" class="logic"><option value="all">all</option><option value="any">any</option></select> of these are true</legend>
+        <div id="entry-rows"></div><button type="button" class="link" data-add="entry">+ condition</button></fieldset>
+      <fieldset><legend>Exit when <select id="f-exit-logic" class="logic"><option value="any">any</option><option value="all">all</option></select> of these are true</legend>
+        <div id="exit-rows"></div><button type="button" class="link" data-add="exit">+ condition</button></fieldset>
+      <div class="grid3">
+        <label>Stop-loss %<input id="f-sl" type="number" step="0.1" min="0" placeholder="none"></label>
+        <label>Target %<input id="f-tp" type="number" step="0.1" min="0" placeholder="none"></label>
+        <label>Max bars<input id="f-maxbars" type="number" min="1" placeholder="none"></label>
+        <label>Capital ₹<input id="f-capital" type="number" min="1000" step="1000"></label>
+        <label>Per trade %<input id="f-pct" type="number" min="1" max="100"></label>
+        <label>Slippage %<input id="f-slip" type="number" step="0.01" min="0"></label>
+      </div>
+      <label class="inline" id="sq-wrap">Intraday square-off <input id="f-sq" type="time"></label>
+      <datalist id="terms"></datalist>
+      <button class="btn primary wide" type="submit" id="run">Run backtest <kbd>⌘↵</kbd></button>
+    </form>
+
+    <div class="panel results" id="results">
+      <div class="empty">
+        <p class="big">Results land here.</p>
+        <p class="muted">Every fill happens on the <b>next</b> bar’s open, pays STT, exchange fees, GST, stamp duty and slippage. If a strategy only works without those, you’ll see it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ REPLAY ============ -->
+<section id="view-replay" class="view" hidden>
+  <header class="hero slim">
+    <p class="kicker">Replay &amp; Paper</p>
+    <h1>Trade a <em>real past session</em>, one candle at a time.</h1>
+    <p class="lede">Your paper account has real-sized capital and a loss limit. Hit it and the account is done, as it would be with real money.</p>
+  </header>
+  <div class="replay">
+    <div class="panel replay-side">
+      <h2>Account</h2>
+      <select id="r-account"></select>
+      <div id="r-account-card" class="acct"></div>
+      <details class="new-acct"><summary>+ New account</summary>
+        <form id="new-account" class="stack">
+          <label>Name<input name="name" value="My first account" required></label>
+          <label>Capital ₹<input name="capital" type="number" value="100000" min="1000" step="1000" required></label>
+          <label>Dies after losing %<input name="max_loss_pct" type="number" value="20" min="1" max="100" required></label>
+          <button class="btn">Open account</button>
+        </form>
+      </details>
+      <h2>Session</h2>
+      <div class="grid2">
+        <label>Symbol<select id="r-symbol"></select></label>
+        <label>Timeframe<select id="r-tf"><option>1min</option><option selected>5min</option><option>15min</option></select></label>
+      </div>
+      <label>Date<input id="r-date" type="date"></label>
+      <div class="row"><button class="btn" id="r-random" type="button">🎲 Surprise me</button><button class="btn primary" id="r-load" type="button">Load session</button></div>
+      <p class="muted small">Keys: <kbd>→</kbd> next bar · <kbd>space</kbd> play · <kbd>B</kbd> buy · <kbd>S</kbd> sell · <kbd>C</kbd> close</p>
+    </div>
+    <div class="panel replay-main">
+      <div class="tape"><span id="r-clock">—</span><span id="r-last">—</span><span id="r-pos" class="pos">Flat</span></div>
+      <div id="r-chart" class="chart tall"></div>
+      <div class="controls">
+        <button class="btn" id="r-play" type="button">▶ Play</button>
+        <button class="btn" id="r-step" type="button">Next bar →</button>
+        <label class="inline">Speed <select id="r-speed"><option value="900">1×</option><option value="350" selected>3×</option><option value="120">8×</option></select></label>
+        <span class="spacer"></span>
+        <label class="inline">Qty <input id="r-qty" type="number" min="1" value="5" class="qty"></label>
+        <button class="btn buy" id="r-buy" type="button">Buy</button>
+        <button class="btn sell" id="r-sell" type="button">Sell</button>
+        <button class="btn" id="r-close" type="button" disabled>Close</button>
+      </div>
+      <input id="r-note" class="note" placeholder="Why are you taking this trade? (saved with it, you'll thank yourself later)">
+    </div>
+  </div>
+</section>
+
+<!-- ============ PORTFOLIO ============ -->
+<section id="view-portfolio" class="view" hidden>
+  <header class="hero slim"><p class="kicker">Portfolio</p><h1>Your accounts, <em>paper and real</em>.</h1></header>
+  <div class="block"><div class="block-head"><h2>Paper accounts</h2></div><div id="p-accounts" class="cards"></div></div>
+  <div class="block"><div class="block-head"><h2>Connect a broker</h2><span class="muted">read-only holdings &amp; P&amp;L, in an upcoming release</span></div><div id="p-brokers" class="cards brokers"></div></div>
+</section>
+
+<!-- ============ DATA ============ -->
+<section id="view-data" class="view" hidden>
+  <header class="hero slim"><p class="kicker">Data</p><h1>What the engine <em>can see</em>.</h1></header>
+  <div class="panel"><table class="table" id="d-table"><thead><tr><th>Symbol</th><th>From</th><th>To</th><th>Timeframes</th><th>Source</th></tr></thead><tbody></tbody></table></div>
+  <div class="two">
+    <form id="upload" class="panel stack">
+      <h2>Upload your own CSV</h2>
+      <p class="muted small">Columns: <code>date, open, high, low, close[, volume]</code>. Daily or intraday. Stays on this server.</p>
+      <label>Symbol name<input name="symbol" required placeholder="BANKNIFTY"></label>
+      <input name="file" type="file" accept=".csv" required>
+      <button class="btn primary">Upload</button>
+    </form>
+    <form id="yahoo" class="panel stack">
+      <h2>Fetch an NSE stock (self-hosted)</h2>
+      <p class="muted small">Daily history from Yahoo Finance, for personal use. Use the NSE symbol with <code>.NS</code>.</p>
+      <label>Symbol<input name="symbol" required placeholder="RELIANCE.NS"></label>
+      <button class="btn primary">Fetch</button>
+    </form>
+  </div>
+</section>
+
+<!-- ============ CONNECT ============ -->
+<section id="view-connect" class="view" hidden>
+  <header class="hero slim"><p class="kicker">Connect an AI</p><h1>Let any AI agent <em>backtest for you</em>.</h1>
+    <p class="lede">AlgoTrader ships an MCP server. Point Claude, Cursor or your own bot at it and it can list data, read the strategy format and run backtests.</p></header>
+  <div class="two">
+    <div class="panel"><h2>Claude Code</h2><pre><code>claude mcp add algotrader -- uv --directory /path/to/Algo_trader run python -m algotrader.mcp_server</code></pre></div>
+    <div class="panel"><h2>Claude Desktop / any client</h2><pre><code>{
+  "mcpServers": {
+    "algotrader": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/Algo_trader", "run",
+               "python", "-m", "algotrader.mcp_server"]
+    }
+  }
+}</code></pre><p class="muted small">Remote agents: <code>python -m algotrader.mcp_server --http</code> serves streamable HTTP.</p></div>
+  </div>
+  <div class="panel"><h2>Tools exposed</h2><ul class="tools"><li><code>list_datasets</code> symbols, ranges, timeframes</li><li><code>list_presets</code> ready strategies</li><li><code>strategy_schema</code> the rule format</li><li><code>run_backtest</code> metrics, coaching notes, trades</li></ul></div>
+</section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

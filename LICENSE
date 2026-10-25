@@ -1,0 +1,23 @@
+AlgoTrader Community License — DRAFT v0.1 (pending legal review; not yet in force)
+
+Copyright (c) 2024-2026 the AlgoTrader authors (github.com/SandyDRawat). All rights reserved except as granted below.
+
+1. Personal use. You may use, copy and modify this software for your own personal, non-commercial purposes,
+   including trading your own money.
+
+2. Share-alike. If you distribute this software or a modified version, or make it available to others over a
+   network, you must publish the complete source code of your version, including any code you built on top of it,
+   under this same license.
+
+3. Commercial use requires a paid license. Any of the following requires a separate written commercial license
+   from the copyright holder, which may include a revenue share:
+   (a) using the software, or anything derived from it, to manage, advise on or trade other people's money;
+   (b) offering it, or anything derived from it, as a paid product or service;
+   (c) any other use primarily intended for commercial advantage.
+
+4. No warranty. The software is provided "as is", without warranty of any kind. It is not investment advice.
+   Backtest and paper-trading results do not predict future returns. The authors are not liable for any loss.
+
+5. Third-party components keep their own licenses.
+
+Contact the copyright holder via https://github.com/SandyDRawat for commercial licensing.
